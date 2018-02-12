@@ -1,0 +1,12 @@
+{
+  "name": "migrant",
+  "version": "0.0.1",
+  "description": "SVN Reorginizations done right",
+  "main": "index.js",
+  "repository": "https://github.com/austinbillings/migrant.git",
+  "author": "ajb <austinjb@upenn.edu>",
+  "license": "MIT",
+  "dependencies": {
+    "zaq": "^1.4.1"
+  }
+}
