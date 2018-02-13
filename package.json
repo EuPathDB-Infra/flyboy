@@ -1,12 +1,21 @@
 {
-  "name": "migrant",
+  "name": "flyboy",
   "version": "0.0.1",
   "description": "SVN Reorginizations done right",
   "main": "index.js",
-  "repository": "https://github.com/austinbillings/migrant.git",
+  "bin": {
+    "flyboy": "./src/cli.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": "https://github.com/austinbillings/flyboy.git",
   "author": "ajb <austinjb@upenn.edu>",
   "license": "MIT",
   "dependencies": {
+    "chalk": "^2.3.1",
+    "cli-table": "^0.3.1",
+    "commander": "^2.14.1",
     "zaq": "^1.4.1"
   }
 }

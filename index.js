@@ -1,2 +1,2 @@
-const migrant = require('./src/migrant');
-module.exports = migrant;
+const flyboy = require('./src/flyboy');
+module.exports = flyboy;
