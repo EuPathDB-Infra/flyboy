@@ -40,19 +40,14 @@ class DeltaTable {
         (file.type === 'directory' ? 'dir' : file.type),
         getPath(file) || chalk.dim('Unknown Path')
       ]);
-      if (index === 20 && !this.config.verbose) table.push([
-        '',
-        chalk.bold(' + ' + (set.length - 20) + ' more.'),
-        '',
-        ''
-      ]);
+      if (index === 20 && !this.config.verbose) table.push([ '', chalk.italic(' + ' + (set.length - 20) + ' more.'), '', '' ]);
     });
     return wrapper(heading + '\n' + table.toString());
   }
 
   render () {
     const { added, untouched, moved, removed } = this.delta;
-    const displayMovedPath = ({ fromPath, toPath }) => `${fromPath} ${chalk.white('=>')} ${toPath}`;
+    const displayMovedPath = ({ fromPath, toPath }) => `${fromPath} ${chalk.white('-->')} ${toPath}`;
     return [
       this.renderSubtable('Untouched', untouched, 'cyan'),
       this.renderSubtable('Removed', removed, 'red'),

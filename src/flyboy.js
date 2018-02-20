@@ -3,48 +3,54 @@ const zaq = require('zaq');
 const path = require('path');
 const chalk = require('chalk');
 const MapDelta = require('./classes/MapDelta');
-const DirectoryMapSet = require('./classes/DirectoryMapSet');
+const MapSet = require('./classes/MapSet');
 const {
   filterDirectories,
   findFileByUri,
   findFileByHash,
   applyTextChanges,
-  extractFileReferences,
-  sortFileReferences,
-  getCommonFilesByFilename,
+  getFileReferences,
+  runShellScript,
   getResolvedShortName,
   localize
 } = require('./utils');
 
 class Flyboy {
-  constructor ({ from, to }, config) {
-    try {
-      this.fromState = new DirectoryMapSet(from, config);
-      this.toState = new DirectoryMapSet(to, config);
-      this.delta = new MapDelta(this.fromState, this.toState, config);
-      this.config = config;
-    } catch (error) {
-      zaq.err(error);
-      throw error;
-    }
-    return this;
+  constructor (config) {
+    const { from, to, base } = config;
+    if (!Array.isArray(from)) throw new Error(`
+      No "from" provided as CLI argument or within configuration.
+      Use the -f <dir> flag or set the "from" property in this directory\'s "flyboy.json".
+      Acceptable Values are directory paths or paths to .fmap.json files describing a file mapping.
+    `);
+    if (!Array.isArray(to)) throw new Error(`
+      No "to" provided as CLI argument or within configuration.
+      Use the -t <dir> flag or set the "to" property in this directory\'s "flyboy.json".
+      Acceptable Values are directory paths or paths to .fmap.json files describing a file mapping.
+    `);
+    this.fromState = new MapSet(from, config);
+    this.toState = new MapSet(to, config);
+    this.delta = new MapDelta(this.fromState, this.toState, config);
+    this.config = config;
   }
 
   forecast () {
-    if (this.delta && this.delta.forecast) this.delta.forecast();
+    if (!this.config.quiet) this.delta.forecast();
   }
 
-  generateScript () {
+  generateScript (execute) {
     const { quiet } = this.config;
     if (!quiet) console.log();
-    const { rootDir } = this.config;
+    const { base } = this.config;
     if (!quiet) zaq.info(chalk.dim(`Generating shell script...`));
     const script = this.delta.generateCommands().join('\n');
-    const outputFile = path.resolve(rootDir, 'flyboy.sh');
+    const outputFile = path.resolve(base, 'flyboy.sh');
     if (!quiet) zaq.info(chalk.dim('Writing to file ') + chalk.reset(outputFile + '...'));
     fs.writeFileSync(outputFile, script);
     if (!quiet) zaq.win('Saved migration script to ' + chalk.bold('flyboy.sh'));
     if (!quiet) zaq.weight(outputFile);
+    if (!quiet && execute) zaq.info('Executing SVN shell script...')
+    if (execute) runShellScript(outputFile);
     if (!quiet) console.log();
   }
 
@@ -62,9 +68,9 @@ class Flyboy {
     if (!quiet) console.log();
   }
 
-  rewriteImports (affectSource = false, execute = false) {
-    const { rootDir } = this.config;
-    const fromRoot = (_path) => path.relative(rootDir, _path);
+  rebaseImports (affectSource = false, execute = false) {
+    const { base } = this.config;
+    const fromRoot = (_path) => path.relative(base, _path);
     const commonFiles = this.delta.getCommonFiles();
 
     const allChanges = commonFiles.map(file => {
@@ -80,7 +86,7 @@ class Flyboy {
       const destContent = file[destContentKey];
       const destContext = fromRoot(path.parse(destPath).dir);
 
-      const referenceChanges = sortFileReferences(extractFileReferences(sourceContent))
+      const referenceChanges = getFileReferences(sourceContent)
         .relative
         .map(reference => {
           const { start, end, match } = reference;

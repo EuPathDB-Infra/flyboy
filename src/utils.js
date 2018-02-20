@@ -3,9 +3,10 @@ const zaq = require('zaq');
 const path = require('path');
 const chalk = require('chalk');
 const { createHash } = require('crypto');
+const { exec } = require('child_process');
 
 const IMAGE_TYPES = [ 'jpg', 'jpeg', 'png', 'gif', 'ico', 'svg', 'tiff' ];
-const TEXT_TYPES = [ 'txt', 'css', 'md', 'scss', 'less', 'sass', 'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'class', 'java', 'xml', 'json', 'sh', 'yaml', 'tag', 'jsp' ];
+const TEXT_TYPES = [ 'txt', 'css', 'md', 'scss', 'less', 'sass', 'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'class', 'java', 'xml', 'json', 'sh', 'yaml', 'tag', 'jsp', 'gitignore' ];
 const RESOLVE_EXTENSIONS = [ '.js', '.jsx', '.ts', '.tsx' ];
 const IMPORT_PATH_PATTERN = /import (?:{? ?(?:\*|[a-zA-Z0-9_]+)(?:\sas\s[a-zA-Z0-9]+)?,? ?}?,?)*(?:'|")([a-zA-Z0-9./\-_]*)(?:'|");?/g;
 
@@ -45,20 +46,24 @@ function isImageExtension (extension) {
   return IMAGE_TYPES.includes(extension.toLowerCase());
 }
 
-function mapDirectory (dir, { ignore = [], rootDir = '/' } = {}) {
+function mapDirectory (dir, { ignore = [], base = '/', ignoreWhen = null } = {}) {
   if (!dirExists(dir)) return null;
   return fs.readdirSync(dir)
-    .filter(name => !ignore.includes(name))
+    .filter(name => {
+      if (ignore.includes(name)) return false;
+      if (typeof ignoreWhen === 'function' && ignoreWhen(name)) return false; 
+      return true;
+    })
     .map(name => {
       const fullUri = path.join(dir, name);
-      const uri = path.relative(rootDir, fullUri);
+      const uri = path.relative(base, fullUri);
       const stats = fs.statSync(fullUri);
       const { size } = stats;
       const isDir = stats.isDirectory();
       const type = isDir ? 'directory' : 'file';
       const output = { name, uri, type};
       if (isDir) {
-        output.content = mapDirectory(fullUri, { ignore, rootDir });
+        output.content = mapDirectory(fullUri, { ignore, base });
       } else {
         output.extension = path.extname(name).substring(1);
         output.hash = getFileHash(fullUri);
@@ -190,6 +195,10 @@ function extractFileReferences (fileContent) {
   return references;
 }
 
+function getFileReferences (fileContent) {
+  return categorizeFileReferences(extractFileReferences(fileContent));
+}
+
 function applyTextChanges (text, changeList) {
   let offset = 0;
   return changeList.reduce((content, change) => {
@@ -203,9 +212,9 @@ function applyTextChanges (text, changeList) {
   }, text);
 }
 
-function sortFileReferences (referenceObjectList) {
+function categorizeFileReferences (referenceObjectList) {
   if (!Array.isArray(referenceObjectList))
-    throw new TypeError(`Bad referenceObjectList passed to sortFileReferences: ${referenceObjectList}`);
+    throw new TypeError(`Bad referenceObjectList passed to categorizeFileReferences: ${referenceObjectList}`);
   const references = { relative: [], libraries: [], absolute: [] };
   referenceObjectList
     .filter(({ match }) => match.indexOf('node_modules') === -1)
@@ -357,6 +366,17 @@ function localize (pathname) {
   return pathname.indexOf('.') === 0 ? pathname : './' + pathname;
 };
 
+function runShellScript (scriptPath) {
+  if (!scriptPath || typeof scriptPath !== 'string' || !fileExists(scriptPath))
+    throw new Error(`Unable to execute shell script: invalid path given (${scriptPath}).`);
+  exec(`sh ${scriptPath}`, (error, stdout, stderr) => {
+    zaq.log(`${stdout}`);
+    zaq.log(`${stderr}`);
+    if (error) zaq.err(`exec error: ${error}`);
+  });
+};
+
+
 module.exports = {
   diverge,
   fileExists,
@@ -373,7 +393,8 @@ module.exports = {
   getCommonFilesByHash,
   findFileByFilename,
   extractFileReferences,
-  sortFileReferences,
+  categorizeFileReferences,
+  getFileReferences,
   findFileByHash,
   findFileByUri,
   getCommonFilesByFilename,

@@ -1,36 +1,29 @@
 const fs = require('fs');
+const path = require('path');
 const zaq = require('zaq').as('DirectoryMap');
+const StructureMap = require('./StructureMap');
 
-const configDefaults = require('../configDefaults');
-const { dirExists, mapDirectory, isParentStructure, flattenMap } = require('../utils');
+const { dirExists, mapDirectory } = require('../utils');
 
-class DirectoryMap {
+class DirectoryMap extends StructureMap {
   constructor (dir, config) {
+    super(config);
     if (!dir || !dirExists(dir))
       throw new TypeError(`Invalid dir provided to DirectoryMap constructor: ${dir}`);
-    this._dir = dir;
-    this._config = Object.assign({}, configDefaults, config);
-    return this.build() ? this : null;
+    this.dir = dir;
+    this.build = this.build.bind(this);
+    this.getStructure = this.getStructure.bind(this);
+    this.writeMapToFile = this.writeMapToFile.bind(this);
+    this.getFlatStructure = this.getFlatStructure.bind(this);
+    this.build();
   }
-
-  get dir () { return this._dir; }
-  get config () { return this._config; }
 
   getStructure () {
     return [...this.structure];
   }
 
-  getFlatStructure () {
-    return flattenMap(this.getStructure());
-  }
-
   build () {
     const { dir, config } = this;
-    const { ignore, rootDir } = config;
-    if (typeof rootDir !== 'string')
-      return zaq.err('Invalid rootDir provided config.', rootDir);
-    if (!Array.isArray(ignore))
-      return zaq.err('Invalid .ignore config property provided (Array expected)', ignore);
     this.structure = mapDirectory(dir, config);
     return this.structure;
   }
