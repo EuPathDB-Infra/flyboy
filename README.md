@@ -3,6 +3,22 @@
 
 Flyboy is a node-based CLI app that evaluates and augments the transition from one codebase organization to another.
 
+## Installation
+Install the latest stable version from NPM:
+
+```bash
+npm install -g flyboy
+```
+
+Or clone this repo & link it into your $PATH:
+
+```bash
+git clone https://github.com/eupathdb-infra/flyboy.git ./flyboy
+cd flyboy
+npm link
+
+```
+
 ## Basic Concepts
 
 **Flyboy** has two main uses:
