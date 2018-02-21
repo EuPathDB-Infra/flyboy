@@ -42,7 +42,7 @@ npm link
 # Commands
 
 ## `flyboy map <inputDir> <outputFileName>`
-Creates an `fmap` of the given `<inputDir>`. This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
+Creates an `fmap` of the given `<inputDir>`. This file can be consumed by flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
 
 The map will be saved as `<outputFileName>.fmap.json` in the current working directory. Files with this dual extension are effectively ignored by flyboy when mapping directories.
 
