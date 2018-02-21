@@ -1,6 +1,6 @@
 {
   "name": "flyboy",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "SVN Reorginizations done right",
   "main": "index.js",
   "bin": {
