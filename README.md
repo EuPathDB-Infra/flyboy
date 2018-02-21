@@ -42,7 +42,7 @@ npm link
 # Commands
 
 ## `flyboy map <inputDir> <outputFileName>`
-Creates an `fmap` of the given <inputDir>. This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
+Creates an `fmap` of the given `<inputDir>`. This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
 
 The map will be saved as `<outputFileName>.fmap.json` in the current working directory. Files with this dual extension are effectively ignored by flyboy when mapping directories.
 
@@ -84,7 +84,7 @@ Does a dry run unless the execute (-e) flag is given.
 
 ## `flyboy copy`
 
-Copy known common files from source/"from" structure to destination/"to" structure. Useful to "undo" changes made to destination files. If you ran rebase, and have changed file/directory structure afterward, run copy to "reset" the files. 
+Copy known common files from source/"from" structure to destination/"to" structure. Useful to "undo" changes made to destination files. If you ran rebase, and have changed file/directory structure afterward, run copy to "reset" the files.
 
 Does a dry run unless the execute (-e) flag is given.
 
