@@ -59,8 +59,8 @@ The following `.flyboyrc` is generated:
 
 ```json
 {
-	"from": "initialState.fmap.json",
-	"moduleRoot": "./src"
+  "from": "initialState.fmap.json",
+  "moduleRoot": "./src"
 }
 ```
 
