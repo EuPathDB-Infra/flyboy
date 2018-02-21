@@ -192,7 +192,7 @@ function getCommonFilesBySimilarity (fromList, toList, threshold = SIMILARITY_TH
       return false;
     });
     if (!destinationFile) return output;
-    zaq.info(`${chalk.dim('Assuming')} ${chalk.reset.bold(originFile.uri)} ${chalk.dim('has been moved to')} ${chalk.reset.bold(destinationFile.uri)} ${chalk.magenta(`(${Math.floor(confidence * 1000)/10}% Match)`)}`);
+    zaq.info(`${chalk.dim('Assuming')} ${chalk.reset.bold(originFile.uri)} ${chalk.dim('has been moved/renamed to')} ${chalk.reset.bold(destinationFile.uri)} ${chalk.magenta(`(${Math.floor(confidence * 1000)/10}% Match)`)}`);
     return [ ...output, getMigrantFileStats(originFile, destinationFile) ]
   }, []);
 }

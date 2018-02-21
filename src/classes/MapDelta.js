@@ -19,13 +19,11 @@ const {
 
 class MapDelta {
   constructor (fromState, toState, config) {
-    this.fromState = fromState;
-    this.toState = toState;
     this.config = config;
     if (!toState.getFlatStructure || !fromState.getFlatStructure)
       throw new TypeError(`Invalid dirs given to MapDelta: ${fromState.toString()}, ${toState.toString()}`);
-    this.fromFiles = this.fromState.getFlatStructure();
-    this.toFiles = this.toState.getFlatStructure();
+    this.fromFiles = fromState.getFlatStructure();
+    this.toFiles = toState.getFlatStructure();
     this.delta = { added: [], untouched: [], moved: [], removed: [] };
     this.compute();
     this.detectMismatches = this.detectMismatches.bind(this);

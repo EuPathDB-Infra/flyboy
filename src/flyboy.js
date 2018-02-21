@@ -36,9 +36,9 @@ class Flyboy {
       Use the -t <dir> flag or set the "to" property in this directory\'s "${CONFIG_FILENAME}".
       Acceptable Values are directory paths or paths to ${MAP_EXTENSION} files describing a file mapping.
     `);
-    this.fromState = new MapSet(from, config);
-    this.toState = new MapSet(to, config);
-    this.mapDelta = new MapDelta(this.fromState, this.toState, config);
+    const fromState = new MapSet(from, config);
+    const toState = new MapSet(to, config);
+    this.mapDelta = new MapDelta(fromState, toState, config);
     this.config = config;
   }
 

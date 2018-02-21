@@ -28,7 +28,7 @@ cli.version(version)
       ${chalk.cyan('flyboy map <inputDir> <outputFileName>')}
           Creates a JSON map of the given <inputDir>.
           This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
-          The map will be saved as ${chalk.italic('<outputFileName>')}${MAP_EXTENSION} in flyboy's.
+          The map will be saved as ${chalk.italic('<outputFileName>')}${MAP_EXTENSION} in the current working directory.
           Files with this dual extension are effectively ignored by flyboy when mapping directories.
 
       ${chalk.cyan('flyboy config [...args]')}
@@ -97,25 +97,28 @@ const options = {
 if (!options.quiet && config) zaq.info('Using configuration from path:', chalk.blue(configPath));
 if (!options.quiet && options.verbose) zaq.info('Using options:', displayObject(options));
 
-cli.command('map <inputDir> <filename>', `Creates a JSON map of the given <inputDir>, saved to <filename>${MAP_EXTENSION}.`)
+cli.command('map <inputDir> <filename>')
+  .description(`Creates a JSON map of the given <inputDir>, saved to <filename>${MAP_EXTENSION}.`)
   .action((dir, filename) => (new MapSet(listify(dir), options)).writeMapToFile(filename));
 
-cli.command('config', 'Pass arguments to the "config" command to save them as your default configuration.')
+cli.command('config')
+  .description('Pass arguments to the "config" command to save them as your default configuration.')
   .action(kind => Flyboy.createConfig(options));
 
-cli.command('status', 'Prints a table indicating the files which are to be added, removed, moved, or left untouched.')
+cli.command('status')
+  .description('Prints a table indicating the files which are to be added, removed, moved, or left untouched.')
   .action(() => (new Flyboy(options)).forecast());
 
-
-cli.command('rebase', 'Rewrite destination file "import" statements to reflect changes in project architecture.')
-  // .option('-i, --invert-rebase', 'When used with the "rebase" command, this will overwrite the "import" statements in text files in the source ("from") directory instead of destination ("to") directory.')
+cli.command('rebase')
+  .description('Rewrite destination file "import" statements to reflect changes in project architecture.')
   .action(invertRebase => (new Flyboy(options)).rebaseImports(invertRebase, options.execute));
 
-
-cli.command('copy', 'Copy known common files from source/"from" structure to destination/"to" structure.')
+cli.command('copy')
+  .description('Copy known common files from source/"from" structure to destination/"to" structure.')
   .action(() => (new Flyboy(options)).copyFiles(options.execute));
 
-cli.command('generate <kind>', `Generates a shell script ("${MIGRATE_SCRIPT_NAME}") containing the git or svn commands, based on given from/to states.`)
+cli.command('generate <kind>')
+  .description(`Generates a shell script ("${MIGRATE_SCRIPT_NAME}") containing the git or svn commands, based on given from/to states.`)
   .action(kind => (new Flyboy(options)).generateScript(kind, options.execute));
 
-cli.parse(process.argv.length === 2 ? [...process.argv, '-h'] : process.argv);
+cli.parse(process.argv);
