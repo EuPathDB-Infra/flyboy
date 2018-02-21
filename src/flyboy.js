@@ -12,7 +12,8 @@ const {
   getFileReferences,
   runShellScript,
   getResolvedShortName,
-  localize
+  localize,
+  RESOLVE_EXTENSIONS
 } = require('./utils');
 
 class Flyboy {
@@ -69,20 +70,21 @@ class Flyboy {
   }
 
   rebaseImports (affectSource = false, execute = false) {
-    const { base } = this.config;
+    const { base, moduleRoot } = this.config;
     const fromRoot = (_path) => path.relative(base, _path);
     const commonFiles = this.delta.getCommonFiles();
 
     const allChanges = commonFiles.map(file => {
-      const sourcePathKey = (affectSource ? 'toPath' : 'fromPath');
+      // zaq.info('On file', Object.assign({}, file, { fromContent: null, toContent: null }));
+      const sourcePathKey = (affectSource ? 'fromPath' : 'toPath');
       const sourcePath = file[sourcePathKey];
-      const sourceContentKey = affectSource ? 'toContent' : 'fromContent';
+      const sourceContentKey = affectSource ? 'fromContent' : 'toContent';
       const sourceContent = file[sourceContentKey];
       const sourceContext = fromRoot(path.parse(sourcePath).dir);
 
-      const destPathKey = (affectSource ? 'fromPath' : 'toPath');
+      const destPathKey = (affectSource ? 'toPath' : 'fromPath');
       const destPath = file[destPathKey];
-      const destContentKey = affectSource ? 'fromContent' : 'toContent';
+      const destContentKey = affectSource ? 'toContent' : 'fromContent';
       const destContent = file[destContentKey];
       const destContext = fromRoot(path.parse(destPath).dir);
 
@@ -92,15 +94,23 @@ class Flyboy {
           const { start, end, match } = reference;
           const importedRelativePath = match;
           const importedFullPath = fromRoot(path.resolve(sourceContext, importedRelativePath));
-          const importedFile = commonFiles.find(file => file[sourcePathKey].indexOf(importedFullPath) === 0);
+          const importedFile = commonFiles.find(file => {
+            const filePath = file[sourcePathKey];
+            if (filePath === importedFullPath)
+              return true;
+            if (RESOLVE_EXTENSIONS.some(extension => (filePath === importedFullPath + extension) || (filePath === `${importedFullPath}/index.${extension}`)))
+              return true;
+            return false;
+          });
           if (!importedFile) {
             zaq.warn(`Couldn't find imported file: ${importedFullPath} (as "${importedRelativePath}") from within ${sourcePath}`);
             return;
-          }
+          };
           const replacementFullPath = importedFile[destPathKey];
-          const replacementRelativePath = getResolvedShortName(localize(path.relative(destContext, replacementFullPath)));
-          const lengthDifference = replacementRelativePath.length - importedRelativePath.length;
-          return { start, end, original: importedRelativePath, replacement: replacementRelativePath };
+          const replacementRelativePath = path.relative(moduleRoot ? path.resolve(base, moduleRoot) : destContext, replacementFullPath);
+          const replacement = getResolvedShortName(moduleRoot ? replacementRelativePath : localize(replacementRelativePath));
+          const lengthDifference = replacement.length - importedRelativePath.length;
+          return { start, end, original: importedRelativePath, replacement };
         })
         .filter(({ original, replacement } = {}) => {
           return replacement && original !== replacement;

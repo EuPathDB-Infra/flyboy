@@ -40,16 +40,18 @@ cli.version(version)
           Useful to update stale files prior to SVN reorginazation.
           Does a dry run unless the execute (-e) flag is given.
       ${chalk.cyan('flyboy generate')}
-          Generate a shell script "flyboy.sh" containing the SVN mkdir/rm/mv commands.
+          Generate a shell script "flyboy.sh" containing the SVN mkdir/rm/mv commands, based on given from/to states.
           Immediately run the script after generation by passing the execute (-e) flag.
       ${chalk.cyan('flyboy map <inputDir> <outputFileName>')}
-
-    ${chalk.dim('Example Usage:')}
-
-    flyboy -f ./View/webapp/WDK/js/client -t ./View/src`)
+          Creates a JSON map of the given <inputDir>.
+          This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
+          The map will be saved as ${chalk.italic('<outputFileName>')}.fmap.json in flyboy's.
+          Files with this dual extension are effectively ignored by flyboy when mapping directories.
+  `)
   .option('-f, --from [dir]', 'Set the "from" directory, representing the starting state. Optionally provide multiple directories separated by commas.')
   .option('-t, --to [dir]', 'Set the "to" directory, representing the desired end state. Optionally provide multiple directories separated by commas.')
   .option('-b, --base [dir]', 'Set the "base" directory, representing the desired end state.')
+  .option('-m, --module-root [dir]', 'Set a webpack-style "module" root directory. When running "rebase", import paths will be relative to this root instead of to their respective source files.')
   .option('-v, --verbose', 'Set verbose mode. This will show all tentative operations instead of limiting each type to 20 rows.')
   .option('-q, --quiet', 'Set quiet mode. No forecast or other messages will be displayed (except errors!).')
   .option('-e, --execute', 'Destructive commands do a "dry run" unless this option is passed.')
@@ -79,6 +81,7 @@ const options = {
   quiet: getOptionValue('quiet'),
   execute: getOptionValue('execute'),
   verbose: getOptionValue('verbose'),
+  moduleRoot: getOptionValue('moduleRoot'),
   rebaseSource: getOptionValue('rebaseSource')
 };
 

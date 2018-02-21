@@ -51,7 +51,7 @@ function mapDirectory (dir, { ignore = [], base = '/', ignoreWhen = null } = {})
   return fs.readdirSync(dir)
     .filter(name => {
       if (ignore.includes(name)) return false;
-      if (typeof ignoreWhen === 'function' && ignoreWhen(name)) return false; 
+      if (typeof ignoreWhen === 'function' && ignoreWhen(name)) return false;
       return true;
     })
     .map(name => {
@@ -405,5 +405,6 @@ module.exports = {
   getResolvedShortName,
   getListUniques,
   isValidList,
-  IMPORT_PATH_PATTERN
+  IMPORT_PATH_PATTERN,
+  RESOLVE_EXTENSIONS
 };
