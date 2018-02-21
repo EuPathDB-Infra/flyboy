@@ -19,11 +19,11 @@ class VirtualMap extends StructureMap {
   }
 
   getStructure () {
-    return this.structure;
+    return this.structure.map(item => Object.assign({}, item, { virtual: true }));
   }
 
   getFlatStructure () {
-    return this.structure;
+    return this.getStructure();
   }
 };
 

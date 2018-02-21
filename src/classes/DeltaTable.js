@@ -49,7 +49,7 @@ class DeltaTable {
     const { added, untouched, moved, removed } = this.delta;
     const displayMovedPath = ({ fromPath, toPath }) => `${fromPath} ${chalk.white('-->')} ${toPath}`;
     return [
-      this.renderSubtable('Untouched', untouched, 'cyan'),
+      this.renderSubtable('Untouched', untouched, 'cyan', ({ fromPath }) => fromPath),
       this.renderSubtable('Removed', removed, 'red'),
       this.renderSubtable('Added', added, 'green'),
       this.renderSubtable('Moved', moved, 'yellow', displayMovedPath)

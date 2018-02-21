@@ -4,12 +4,14 @@ const path = require('path');
 const chalk = require('chalk');
 const { createHash } = require('crypto');
 const { exec } = require('child_process');
-
-const IMAGE_TYPES = [ 'jpg', 'jpeg', 'png', 'gif', 'ico', 'svg', 'tiff' ];
-const TEXT_TYPES = [ 'txt', 'css', 'md', 'scss', 'less', 'sass', 'js', 'jsx', 'ts', 'tsx', 'html', 'htm', 'class', 'java', 'xml', 'json', 'sh', 'yaml', 'tag', 'jsp', 'gitignore' ];
-const RESOLVE_EXTENSIONS = [ '.js', '.jsx', '.ts', '.tsx' ];
-const IMPORT_PATH_PATTERN = /import (?:{? ?(?:\*|[a-zA-Z0-9_]+)(?:\sas\s[a-zA-Z0-9]+)?,? ?}?,?)*(?:'|")([a-zA-Z0-9./\-_]*)(?:'|");?/g;
-
+const { compareTwoStrings } = require('string-similarity');
+const {
+  IMAGE_TYPES,
+  TEXT_TYPES,
+  RESOLVE_EXTENSIONS,
+  IMPORT_PATH_PATTERN,
+  SIMILARITY_THRESHOLD
+} = require('./constants');
 
 function getFileHash (path) {
   if (!fileExists(path))
@@ -63,7 +65,7 @@ function mapDirectory (dir, { ignore = [], base = '/', ignoreWhen = null } = {})
       const type = isDir ? 'directory' : 'file';
       const output = { name, uri, type};
       if (isDir) {
-        output.content = mapDirectory(fullUri, { ignore, base });
+        output.content = mapDirectory(fullUri, { ignore, base, ignoreWhen });
       } else {
         output.extension = path.extname(name).substring(1);
         output.hash = getFileHash(fullUri);
@@ -132,14 +134,20 @@ function findFileByHash (list, _hash) {
   return list.find(({ hash }) => hash === _hash);
 }
 
-function findFileByFilename (list, _name) {
-  return list.find(({ name }) => name === _name);
+function findFileByFilename (list, _name, strict = true) {
+  return strict
+    ? list.find(({ name }) => name === _name)
+    : list.find(({ name }) => name.toLowerCase() === _name.toLowerCase())
 }
 
 function findFileByUri (list, _uri, strict = true) {
   return strict
     ? list.find(({ uri }) => uri === _uri)
     : list.find(({ uri }) => uri.indexOf(_uri) === 0)
+}
+
+function findFileByContents (list, contents) {
+  const checkableList = list.filter(({ toContent }) => toContent);
 }
 
 function filenameHasExtension (filename, extension) {
@@ -166,6 +174,27 @@ function getCommonFilesByHash (fromList, toList) {
     const toFile = findFileByHash(toList, hash);
     return getMigrantFileStats(fromFile, toFile);
   });
+}
+
+function getCommonFilesBySimilarity (fromList, toList, threshold = SIMILARITY_THRESHOLD) {
+  return fromList.reduce((output, originFile) => {
+    let confidence = 0;
+    const destinationFile = toList.find(possibleMatch => {
+      if (possibleMatch.hash === originFile.hash || possibleMatch.content === originFile.content) {
+        confidence = 1;
+        return true;
+      };
+      const similarity = compareTwoStrings(originFile.content, possibleMatch.content);
+      if (similarity >= threshold) {
+        confidence = similarity;
+        return true;
+      };
+      return false;
+    });
+    if (!destinationFile) return output;
+    zaq.info(`${chalk.dim('Assuming')} ${chalk.reset.bold(originFile.uri)} ${chalk.dim('has been moved to')} ${chalk.reset.bold(destinationFile.uri)} ${chalk.magenta(`(${Math.floor(confidence * 1000)/10}% Match)`)}`);
+    return [ ...output, getMigrantFileStats(originFile, destinationFile) ]
+  }, []);
 }
 
 function getPatternMatches (source, pattern) {
@@ -219,7 +248,7 @@ function categorizeFileReferences (referenceObjectList) {
   referenceObjectList
     .filter(({ match }) => match.indexOf('node_modules') === -1)
     .forEach(reference => {
-      if (reference.match.indexOf('.') === -1 && reference.match.indexOf('/'))
+      if (reference.match.indexOf('.') === -1 && reference.match.indexOf('/') === -1)
         references.libraries.push(reference);
       else if (reference.match.indexOf('.') === 0)
         references.relative.push(reference);
@@ -248,30 +277,39 @@ function generateObject (properties, defaultValue = null) {
   return output;
 }
 
+function getExt (uri) {
+  return path.parse(uri).ext.replace('.', '');
+}
+
 function getMigrantFileStats (fromFile, toFile) {
   const modified = (toFile.hash !== fromFile.hash);
   const migrated = (toFile.uri !== fromFile.uri);
+  const toExt = path.parse(toFile.uri).ext.replace('.', '');
   return {
     modified,
     migrated,
     type: toFile.type,
     name: toFile.name,
+    toExt: getExt(toFile.uri),
     toPath: toFile.uri,
     toHash: toFile.hash,
+    toVirtual: toFile.virtual,
     toContent: toFile.content,
+    fromExt: getExt(fromFile.uri),
     fromPath: fromFile.uri,
     fromHash: fromFile.hash,
+    fromVirtual: fromFile.virtual,
     fromContent: fromFile.content,
   };
 }
 
-function getCommonFilesByFilename (fromList, toList) {
+function getCommonFilesByFilename (fromList, toList, { strict } = {}) {
   const [ uniqueFromFiles, uniqueToFiles ] = [fromList, toList].map(getOnlyUniqueFilenames);
   const shared = getCommonFiles(transformToFilenameList, uniqueFromFiles, uniqueToFiles);
   return shared
     .map(filename => {
-      const fromFile = findFileByFilename(fromList, filename);
-      const toFile = findFileByFilename(toList, filename);
+      const fromFile = findFileByFilename(fromList, filename, strict);
+      const toFile = findFileByFilename(toList, filename, strict);
       return getMigrantFileStats(fromFile, toFile);
     });
 }
@@ -385,6 +423,7 @@ module.exports = {
   makeSorter,
   mapDirectory,
   unique,
+  getExt,
   localize,
   flattenMap,
   getCommonFiles,
@@ -398,10 +437,12 @@ module.exports = {
   findFileByHash,
   findFileByUri,
   getCommonFilesByFilename,
+  getCommonFilesBySimilarity,
   applyTextChanges,
   transformToHashList,
   transformToFilenameList,
   getOnlyUniqueValues,
+  getMigrantFileStats,
   getResolvedShortName,
   getListUniques,
   isValidList,

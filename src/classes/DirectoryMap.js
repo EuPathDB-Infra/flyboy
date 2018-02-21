@@ -24,7 +24,9 @@ class DirectoryMap extends StructureMap {
 
   build () {
     const { dir, config } = this;
+    if (!config.quiet) zaq.info(`Scanning ${dir}...`);
     this.structure = mapDirectory(dir, config);
+    if (!config.quiet) zaq.info(`Done.`);
     return this.structure;
   }
 };

@@ -1,14 +1,19 @@
-const zaq = require('zaq');
+const chalk = require('chalk');
+const zaq = require('zaq').as('MapDelta');
+
 const DeltaTable = require('./DeltaTable');
 const {
   diverge,
   getCommonFilesByHash,
   getCommonFilesByFilename,
+  getCommonFilesBySimilarity,
   findFileByFilename,
   getOnlyUniqueValues,
   makeSorter,
   unique,
+  getMigrantFileStats,
   getListUniques,
+  filterDirectories,
   transformToFilenameList
 } = require('../utils');
 
@@ -21,29 +26,18 @@ class MapDelta {
       throw new TypeError(`Invalid dirs given to MapDelta: ${fromState.toString()}, ${toState.toString()}`);
     this.fromFiles = this.fromState.getFlatStructure();
     this.toFiles = this.toState.getFlatStructure();
-    this.delta = {
-      added: [],
-      untouched: [],
-      moved: [],
-      removed: []
-    };
+    this.delta = { added: [], untouched: [], moved: [], removed: [] };
     this.compute();
+    this.detectMismatches = this.detectMismatches.bind(this);
   }
 
   compute () {
-    const { fromFiles, toFiles } = this;
+    const { config, fromFiles, toFiles } = this;
     this.detectMoves(fromFiles, toFiles);
     this.detectAdditions(fromFiles, toFiles);
     this.detectDeletions(fromFiles, toFiles);
+    this.detectMismatches();
     return this.delta;
-  }
-
-  detectAdditions (fromFiles, toFiles) {
-    fromFiles = transformToFilenameList(fromFiles);
-    const additions = toFiles.filter(file => {
-      return !fromFiles.includes(file.name);
-    });
-    this.delta.added = additions;
   }
 
   getMovedFiles () {
@@ -84,41 +78,66 @@ class MapDelta {
     this.delta.removed = deletions;
   }
 
+  detectAdditions (fromFiles, toFiles) {
+    fromFiles = transformToFilenameList(fromFiles);
+    const additions = toFiles.filter(file => {
+      return !fromFiles.includes(file.name);
+    });
+    this.delta.added = additions;
+  }
+
+  detectMismatches (fromFiles, toFiles) {
+    if (this.config.strict) zaq.warn('YO LOL WTF');
+    const removed = filterDirectories(this.delta.removed);
+    const added = filterDirectories(this.delta.added);
+    const alterations = getCommonFilesBySimilarity(removed, added);
+    if (!alterations.length) return;
+
+    const matchedSourcePaths = alterations.map(({ fromPath }) => fromPath);
+    const matchedDestinationPaths = alterations.map(({ toPath }) => toPath);
+    const actuallyRemoved = this.delta.removed.filter(file => !matchedSourcePaths.includes(file.uri));
+    const actuallyAdded = this.delta.added.filter(file => !matchedDestinationPaths.includes(file.uri));
+
+    this.delta.moved = [ ...this.delta.moved, ...alterations ];
+    this.delta.added = actuallyAdded;
+    this.delta.removed = actuallyRemoved;
+  }
+
   forecast () {
     const table = new DeltaTable(this.delta, this.config);
     zaq.log(table.render());
   }
 
-  generateCommands () {
-    const additions = this.generateAdditionCommands();
-    const removals = this.generateRemovalCommands();
-    const moves = this.generateMoveCommands();
+  generateCommands (kind) {
+    const additions = this.generateAdditionCommands(kind);
+    const removals = this.generateRemovalCommands(kind);
+    const moves = this.generateMoveCommands(kind);
     return [ ...additions, ...removals, ...moves ];
   }
 
-  generateAdditionCommands () {
+  generateAdditionCommands (kind) {
     const output = [];
     this.delta.added.forEach(addition => {
-      if (addition.type === 'directory')
-        output.push('svn mkdir ' + addition.uri);
+      if (addition.type === 'directory' && kind === 'svn')
+        output.push(kind + ' mkdir ' + addition.uri);
       else if (addition.type === 'file')
-        output.push('svn add ' + addition.uri);
+        output.push(kind + ' add ' + addition.uri);
     });
     return output;
   }
 
-  generateRemovalCommands () {
+  generateRemovalCommands (kind) {
     const output = [];
     this.delta.removed.forEach(removal => {
-      output.push('svn rm ' + removal.uri);
+      output.push(kind + ' rm ' + removal.uri);
     });
     return output;
   }
 
-  generateMoveCommands () {
+  generateMoveCommands (kind) {
     const output = [];
     this.delta.moved.forEach(moved => {
-      output.push('svn mv ' + moved.fromPath + ' ' + moved.toPath);
+      output.push(kind + ' mv ' + moved.fromPath + ' ' + moved.toPath);
     });
     return output;
   }
