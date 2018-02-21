@@ -80,19 +80,19 @@ Affected import statements include:
 - CSS/SCSS/LESS `@import` statements.
 - _(Support for further import types would be a great addition, including `require()` imports and maybe even java class rewrite support!)_
 
-Does a dry run unless the execute (-e) flag is given.
+Does a dry run unless the execute (`-e/--execute`) flag is given.
 
 ## `flyboy copy`
 
 Copy known common files from source/"from" structure to destination/"to" structure. Useful to "undo" changes made to destination files. If you ran rebase, and have changed file/directory structure afterward, run copy to "reset" the files.
 
-Does a dry run unless the execute (-e) flag is given.
+Does a dry run unless the execute (`-e/--execute`) flag is given.
 
 ## `flyboy generate <git|svn>`
 
 Generates a shell script (`flyboy-migrate.sh`) containing the git or svn mkdir/rm/mv commands, based on given from/to states.
 
-Immediately run the script after generation by passing the execute (-e) flag.
+Immediately run the script after generation by passing the execute (`-e/--execute`) flag.
 
 
 # All CLI Options
