@@ -84,8 +84,8 @@ Immediately run the script after generation by passing the execute (-e) flag.
 |Short Option|Long Option|Config Key|Effect|
 |:---|:---|:---|:---|
 |`-V`|`--version`| |output the version number|
-|`-f [dir]`|`--from [dir]`|`from (string|array)`|Set the "from" directory, representing the starting state. Optionally provide multiple directories separated by commas.
-|`-t [dir]`|`--to [dir]`|`to (string|array)`|Set the "to" directory, representing the desired end state. Optionally provide multiple directories separated by commas.|
+|`-f [dir]`|`--from [dir]`|`from (string or array[string])`|Set the "from" directory, representing the starting state. Optionally provide multiple directories separated by commas.
+|`-t [dir]`|`--to [dir]`|`to (string or array[string])`|Set the "to" directory, representing the desired end state. Optionally provide multiple directories separated by commas.|
 |`-b [dir]`|`--base [dir]`|`base (string)`|Set the "base" directory, representing the desired end state.|
 |`-m [dir]`|`--module-root [dir]`|`moduleRoot (string)`|Set a webpack-style "module" root directory. When running "rebase", import paths will be relative to this root instead of to their respective source files.|
 |`-v`|`--verbose`|`verbose (bool)`|Set verbose mode. This will show all tentative operations instead of limiting each type to 20 rows.|
