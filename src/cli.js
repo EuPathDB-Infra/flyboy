@@ -13,41 +13,45 @@ const { CONFIG_FILENAME, MIGRATE_SCRIPT_NAME, MAP_EXTENSION } = require('./const
 
 cli.version(version)
   .description(`
-    ${chalk.bold.red('flyboy')} evaluates and augments the transition from one codebase organization to another.
+    ${chalk.bold.yellow('flyboy')} evaluates and augments the transition from one codebase organization to another.
 
     - Set the "from" (${chalk.bold('-f, --from')}) and "to" (${chalk.bold('-t, --to')}) options to directory paths that reference
       project start and end states.
     - Set the "base" (${chalk.bold('-b, --base')}) option to specify the relative root/base when transitioning.
-      ${chalk.blue.italic('Defaults to current working directory.')}
-    - Use the "generate" (${chalk.bold('-g/--generate')}) flag to create a shell script file containing the SVN commands.
+      ${chalk.dim.italic('Defaults to current working directory.')}
     - Place a ${chalk.green(`"${CONFIG_FILENAME}"`)} file in your working directory containing the same options you'd pass via command-line
-      (except use camelCase instead of snake-case; i.e. if you'd use the option "--invert-rebase", set { "invertRebase": true } in your json)
+      (except use camelCase instead of snake-case; i.e. if you'd use the option "--invert-rebase", set { "invertRebase": true } in your json).
+      This file can be easily generated using the ${chalk.bold('flyboy config')} command.
 
-      ${chalk.bold('The following commands are available (and you might wanna use them in this order):')}
+      ${chalk.bold('The following commands are available (and may likely be used in this order):')}
 
       ${chalk.cyan('flyboy map <inputDir> <outputFileName>')}
           Creates a JSON map of the given <inputDir>.
           This file can be consumed flyboy as if it were an actual directory, and can preserve the state of a directory for later comparison or migration.
           The map will be saved as ${chalk.italic('<outputFileName>')}${MAP_EXTENSION} in flyboy's.
           Files with this dual extension are effectively ignored by flyboy when mapping directories.
+
       ${chalk.cyan('flyboy config [...args]')}
           Pass arguments to the "config" command to save them as your default configuration.
           If you run the following:
               ${chalk.blue('flyboy config -f initialState.fmap.json -m ./src')}
           The following ${chalk.italic('.flyboyrc')} is generated:
               ${chalk.blue(`{ "from": "initialState${MAP_EXTENSION}", "moduleRoot": "./src" }`)}
+
       ${chalk.cyan('flyboy status')}
           Prints a table indicating the files which are to be added, removed, moved, or left untouched.
           Use with -v to see the full list (by default, limited to first 20 items per list).
+
       ${chalk.cyan('flyboy rebase')}
           Rewrite destination file "import" statements to reflect changes in project architecture.
           Affected import statements include ES6 import statements, as well as CSS/SCSS @import statements.
-          This affects files in the destination ("to") directory, unless the -i/--invert-rebase option is supplied.
           Does a dry run unless the execute (-e) flag is given.
+
       ${chalk.cyan('flyboy copy')}
           Copy known common files from source/"from" structure to destination/"to" structure.
-          Useful to update stale files prior to SVN reorginazation.
+          Useful to "undo" changes made to destination files. If you ran ${chalk.bold('rebase')}, and have changed file/directory structure afterward, run ${chalk.bold('copy')} to "reset" the files.
           Does a dry run unless the execute (-e) flag is given.
+
       ${chalk.cyan('flyboy generate <git|svn>')}
           Generates a shell script ("${MIGRATE_SCRIPT_NAME}") containing the git or svn mkdir/rm/mv commands, based on given from/to states.
           Immediately run the script after generation by passing the execute (-e) flag.
@@ -93,25 +97,25 @@ const options = {
 if (!options.quiet && config) zaq.info('Using configuration from path:', chalk.blue(configPath));
 if (!options.quiet && options.verbose) zaq.info('Using options:', displayObject(options));
 
-cli.command('status')
-  .action(() => (new Flyboy(options)).forecast());
+cli.command('map <inputDir> <filename>', `Creates a JSON map of the given <inputDir>, saved to <filename>${MAP_EXTENSION}.`)
+  .action((dir, filename) => (new MapSet(listify(dir), options)).writeMapToFile(filename));
 
-cli.command('copy')
-  .action(() => (new Flyboy(options)).copyFiles(options.execute));
-
-cli.command('generate <kind>')
-  .action(kind => (new Flyboy(options)).generateScript(kind, options.execute));
-
-cli.command('config')
+cli.command('config', 'Pass arguments to the "config" command to save them as your default configuration.')
   .action(kind => Flyboy.createConfig(options));
 
-cli.command('rebase')
-  .option('-i, --invert-rebase', 'When used with the "rebase" command, this will overwrite the "import" statements in text files in the source ("from") directory instead of destination ("to") directory.')
+cli.command('status', 'Prints a table indicating the files which are to be added, removed, moved, or left untouched.')
+  .action(() => (new Flyboy(options)).forecast());
+
+
+cli.command('rebase', 'Rewrite destination file "import" statements to reflect changes in project architecture.')
+  // .option('-i, --invert-rebase', 'When used with the "rebase" command, this will overwrite the "import" statements in text files in the source ("from") directory instead of destination ("to") directory.')
   .action(invertRebase => (new Flyboy(options)).rebaseImports(invertRebase, options.execute));
 
-cli.command('map <inputDir> <outputFilename>')
-  .action((dir, outputFilename) => (new MapSet(listify(dir), options)).writeMapToFile(outputFilename));
 
-if (process.argv.length == 2) zaq.info('No command given, exiting. See "flyboy -h" for more information.');
+cli.command('copy', 'Copy known common files from source/"from" structure to destination/"to" structure.')
+  .action(() => (new Flyboy(options)).copyFiles(options.execute));
 
-cli.parse(process.argv);
+cli.command('generate <kind>', `Generates a shell script ("${MIGRATE_SCRIPT_NAME}") containing the git or svn commands, based on given from/to states.`)
+  .action(kind => (new Flyboy(options)).generateScript(kind, options.execute));
+
+cli.parse(process.argv.length === 2 ? [...process.argv, '-h'] : process.argv);
