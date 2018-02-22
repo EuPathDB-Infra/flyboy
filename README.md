@@ -52,7 +52,7 @@ Pass arguments to the "config" command to save them as your default configuratio
 For example, if you run the following:
 
 ```bash
-flyboy config -f initialState.fmap.json -m ./src
+flyboy config -f initialState.fmap.json -t ./src,./ui -m ./src
 ```
 
 The following `.flyboyrc` is generated:
@@ -60,7 +60,11 @@ The following `.flyboyrc` is generated:
 ```json
 {
   "from": "initialState.fmap.json",
-  "moduleRoot": "./src"
+  "moduleRoot": "./src",
+	"to": [
+		"./src",
+		"./ui"
+	]
 }
 ```
 
@@ -99,7 +103,6 @@ Immediately run the script after generation by passing the execute (`-e/--execut
 
 |Short Option|Long Option|Config Key|Effect|
 |:---|:---|:---|:---|
-|`-V`|`--version`| |output the version number|
 |`-f [dir]`|`--from [dir]`|`from (string or array[string])`|Set the "from" directory, representing the starting state. Optionally provide multiple directories separated by commas.
 |`-t [dir]`|`--to [dir]`|`to (string or array[string])`|Set the "to" directory, representing the desired end state. Optionally provide multiple directories separated by commas.|
 |`-b [dir]`|`--base [dir]`|`base (string)`|Set the "base" directory, representing the desired end state.|
@@ -108,3 +111,4 @@ Immediately run the script after generation by passing the execute (`-e/--execut
 |`-q`|`--quiet`|`quiet (bool)`|Set quiet mode. No forecast or other messages will be displayed (except errors!).|
 |`-e`|`--execute`|`execute (bool)`|Destructive commands do a "dry run" unless this option is passed.|
 |`-h`|`--help`| |output usage information|
+|`-V`|`--version`| |output the version number|
