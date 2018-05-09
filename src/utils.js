@@ -184,6 +184,7 @@ function getCommonFilesBySimilarity (fromList, toList, threshold = SIMILARITY_TH
         confidence = 1;
         return true;
       };
+      if (!originFile.content || !possibleMatch.content) return false;
       const similarity = compareTwoStrings(originFile.content, possibleMatch.content);
       if (similarity >= threshold) {
         confidence = similarity;
